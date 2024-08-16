@@ -58,7 +58,7 @@ FROM arrivals
 -- On average, what are the top 10 most popular tourist destination between 2000 and 2022?
 
 SELECT "Country",
-		AVG(NULLIF("Total Arrivals (K)", 'NULL')::float) AS "AVG Arrivals"
+		AVG("Total Arrivals (K)") AS "AVG Arrivals"
 FROM main
 WHERE ("Year"::int) BETWEEN 2000 AND 2022
 GROUP BY "Country"
@@ -67,25 +67,44 @@ ORDER BY "AVG Arrivals" DESC;
 -- On average, what are the top 10 most popular tourist destinations between 2010 and 2022?
 
 SELECT "Country",
-		AVG(NULLIF("Total Arrivals (K)", 'NULL')::float) AS "AVG Arrivals"
+		AVG("Total Arrivals (K)") AS "AVG Arrivals"
 FROM main
 WHERE ("Year"::int) BETWEEN 2010 AND 2022
 GROUP BY "Country"
 ORDER BY "AVG Arrivals" DESC;
 
+-- On average, what are the top 10 most popular tourist destinations after COVID (2020-2022)?
+
+SELECT "Country",
+		AVG("Total Arrivals (K)") AS "AVG Arrivals"
+FROM main
+WHERE ("Year"::int) BETWEEN 2020 AND 2022
+GROUP BY "Country"
+ORDER BY "AVG Arrivals" DESC;
+
+
 -- On average, what were the top 10 cruise destinations between 2010 and 2022?
 
 SELECT "Country",
-		AVG(NULLIF("Cruise Passengers (K)", 'NULL')::float) AS "AVG Cruise Passengers"
+		AVG("Cruise Passengers (K)") AS "AVG Cruise Passengers"
 FROM main
 WHERE ("Year"::int) BETWEEN 2010 AND 2022
 GROUP BY "Country"
 ORDER BY "AVG Cruise Passengers" DESC;
 
+-- On average, what are the top 10 most popular cruise destinations after COVID (2020-2022)?
+
+SELECT "Country",
+		AVG("Cruise Passengers (K)") AS "AVG Cruise Passengers (K)"
+FROM main
+WHERE ("Year"::int) BETWEEN 2020 AND 2022
+GROUP BY "Country"
+ORDER BY "AVG Cruise Passengers (K)" DESC;
+
 -- Which 10 countries had the highest average tourism expenditure between 2010 and 2022?
 
 SELECT "Country",
-		AVG(NULLIF("Tourism Expenditure ($M)", 'NULL')::float) AS "AVG Tourism Expenditure"
+		AVG("Tourism Expenditure ($M)") AS "AVG Tourism Expenditure"
 FROM main
 WHERE ("Year"::int) BETWEEN 2010 AND 2022
 GROUP BY "Country"
@@ -94,7 +113,7 @@ ORDER BY "AVG Tourism Expenditure" DESC;
 -- Which 10 countires had the highest average tourism expenditure per tourist between 2010 and 2022?
 
 SELECT "Country",
-		AVG((NULLIF("Tourism Expenditure ($M)", 'NULL')::float)/(NULLIF("Total Arrivals (K)", 'NULL')::float)) AS "AVG Tourism Expenditure Per Tourist"
+		AVG("Tourism Expenditure ($M)")/("Total Arrivals (K)") AS "AVG Tourism Expenditure Per Tourist"
 FROM main
 WHERE ("Year"::int) BETWEEN 2010 AND 2022
 	AND "Total Arrivals (K)" IS NOT NULL
@@ -106,11 +125,11 @@ ORDER BY "AVG Tourism Expenditure Per Tourist" DESC;
 -- On average, between 2010 and 2022, what countries depend the most and least on their tourism industries? (Filtered countries who had more than 1M average total visitors per year)
 
 SELECT "Country",
-		AVG(NULLIF("% Tourism GDP", 'NULL')::float) AS "% Tourism GDP"
+		AVG("% Tourism GDP") AS "% Tourism GDP"
 FROM main
 WHERE ("Year"::int) BETWEEN 2010 AND 2022
 GROUP BY "Country"
-HAVING AVG(NULLIF("Total Arrivals (K)", 'NULL')::float) > 1000
+HAVING AVG("Total Arrivals (K)") > 1000
 ORDER BY "% Tourism GDP" DESC;
 
 -- Which countries have the highest growing tourism markets between 2000 and 2022?
@@ -119,11 +138,11 @@ WITH growth AS	(SELECT a."Country",
 						"2022",
 						"2000"
 				FROM (SELECT "Country",
-							NULLIF("Tourism Expenditure ($M)", 'NULL')::float AS "2022"
+							"Tourism Expenditure ($M)" AS "2022"
 					FROM main
 					WHERE ("Year"::int) = 2022) AS a
 					INNER JOIN (SELECT "Country", 
-									NULLIF("Tourism Expenditure ($M)", 'NULL')::float AS "2000"
+									"Tourism Expenditure ($M)" AS "2000"
 								FROM main
 								WHERE ("Year"::int) = 2000) AS b
 					ON a."Country" = b."Country")
@@ -143,11 +162,11 @@ WITH growth AS	(SELECT a."Country",
 						"2022",
 						"2010"
 				FROM (SELECT "Country",
-							NULLIF("Tourism Expenditure ($M)", 'NULL')::float AS "2022"
+							"Tourism Expenditure ($M)" AS "2022"
 					FROM main
 					WHERE ("Year"::int) = 2022) AS a
 					INNER JOIN (SELECT "Country", 
-									NULLIF("Tourism Expenditure ($M)", 'NULL')::float AS "2010"
+									"Tourism Expenditure ($M)" AS "2010"
 								FROM main
 								WHERE ("Year"::int) = 2010) AS b
 					ON a."Country" = b."Country")
@@ -161,3 +180,100 @@ GROUP BY "Country",
 		growth."2010"
 ORDER BY "Tourism Expenditure Growth" DESC;
 
+-- Which tourism markets recovered quickest from the COVID pandemic based on total arrivals, expenditure, and cruise passengers?
+
+-- Total Arrivals (K)
+SELECT "Country",
+	("2022" - "2020") AS "Total Arrivals Increase (K)"
+FROM (SELECT "Country",
+		"Total Arrivals (K)" AS "2020"
+	FROM main
+	WHERE "Year" = 2020)
+INNER JOIN (SELECT "Country",
+				"Total Arrivals (K)" AS "2022"
+			FROM main
+			WHERE "Year" = 2022)
+USING("Country")
+WHERE "2020" > 0
+	AND "2022" > 0
+ORDER BY "Total Arrivals Increase (K)" DESC;
+
+-- Total Arrivals %
+SELECT "Country",
+	("2022" - "2020")/"2020" * 100 AS "Percent Growth"
+FROM (SELECT "Country",
+		"Total Arrivals (K)" AS "2020"
+	FROM main
+	WHERE "Year" = 2020)
+INNER JOIN (SELECT "Country",
+				"Total Arrivals (K)" AS "2022"
+			FROM main
+			WHERE "Year" = 2022)
+USING("Country")
+WHERE "2020" > 0
+	AND "2022" > 0
+ORDER BY "Percent Growth" DESC;
+
+-- Cruise Passengers (K)
+SELECT "Country",
+	("2022" - "2020") AS "Cruise Passengers Increase (K)"
+FROM (SELECT "Country",
+		"Cruise Passengers (K)" AS "2020"
+	FROM main
+	WHERE "Year" = 2020)
+INNER JOIN (SELECT "Country",
+				"Cruise Passengers (K)" AS "2022"
+			FROM main
+			WHERE "Year" = 2022)
+USING("Country")
+WHERE "2020" > 0
+	AND "2022" > 0
+ORDER BY "Cruise Passengers Increase (K)" DESC;
+
+-- Cruise Passengers %
+SELECT "Country",
+	("2022" - "2020")/"2020" * 100 AS "Percent Growth"
+FROM (SELECT "Country",
+		"Cruise Passengers (K)" AS "2020"
+	FROM main
+	WHERE "Year" = 2020)
+INNER JOIN (SELECT "Country",
+				"Cruise Passengers (K)" AS "2022"
+			FROM main
+			WHERE "Year" = 2022)
+USING("Country")
+WHERE "2020" > 0
+	AND "2022" > 0
+ORDER BY "Percent Growth" DESC;
+
+-- Expenditure ($M)
+SELECT "Country",
+	("2022" - "2020") AS "Expenditure Growth ($M)"
+FROM (SELECT "Country",
+		"Tourism Expenditure ($M)" AS "2020"
+	FROM main
+	WHERE "Year" = 2020)
+INNER JOIN (SELECT "Country",
+				"Tourism Expenditure ($M)" AS "2022"
+			FROM main
+			WHERE "Year" = 2022)
+USING("Country")
+WHERE "2020" > 0
+	AND "2022" > 0
+ORDER BY "Expenditure Growth ($M)" DESC;
+
+-- Expenditure %
+SELECT "Country",
+	("2022" - "2020")/"2020" * 100 AS "Percent Growth"
+FROM (SELECT "Country",
+		"Tourism Expenditure ($M)" AS "2020"
+	FROM main
+	WHERE "Year" = 2020)
+INNER JOIN (SELECT "Country",
+				"Tourism Expenditure ($M)" AS "2022"
+			FROM main
+			WHERE "Year" = 2022)
+USING("Country")
+WHERE "2020" > 0
+	AND "2022" > 0
+ORDER BY "Percent Growth" DESC;
